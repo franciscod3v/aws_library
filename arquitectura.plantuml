@@ -1,0 +1,47 @@
+@startuml
+
+title AWS Library
+
+!define AWSPuml https://raw.githubusercontent.com/awslabs/aws-icons-for-plantuml/v18.0/dist
+!includeurl AWSPuml/AWSCommon.puml
+!includeurl AWSPuml/Compute/Lambda.puml
+!includeurl AWSPuml/General/User.puml
+!includeurl AWSPuml/ApplicationIntegration/APIGateway.puml
+!includeurl AWSPuml/ApplicationIntegration/EventBridgePipes.puml
+!includeurl AWSPuml/ApplicationIntegration/EventBridge.puml
+!includeurl AWSPuml/Database/DynamoDB.puml
+!includeurl AWSPuml/Compute/EC2.puml
+!includeurl AWSPuml/Database/DynamoDBStream.puml
+!includeurl AWSPuml/ApplicationIntegration/SimpleQueueService.puml
+!includeurl AWSPuml/Storage/SimpleStorageServiceS3Standard.puml
+
+agent "User" as user #fff
+
+rectangle "AWS CLOUD" {
+
+    rectangle "Region (us-east-1)" {
+        EC2(ec2, "ec2_aws_libros", "App en Flask para registro de libros")
+        DynamoDB(dynamo, "Libros", "Tabla que almacena datos de libros")
+        EventBridge(eventbridge, "EventBridge", "Capturar y enrutar eventos generador por DynamoDB")
+
+        rectangle "EventBridge" {
+            DynamoDBStream(dynamo_stream, "DynamoDB Stream", "Capturar cambios en base de datos")
+            EventBridgePipes(eventbridge_pipes, "eventbridge_aws_libros", "Dirigir Streams a SQS")
+            SimpleQueueService(sqs_aws_libros, "sqs_aws_libros", "Cola que almacena eventos Dynamo Streams")
+        }
+        Lambda(lambda, "lambda_aws_libros", "Restructurar y procesar Streams para almacenamiento")
+        SimpleStorageServiceS3Standard(s3, "bucket-aws-libros-franciscod3v-2024", "Almacenar datos para posterior análisis")
+    }
+
+    user --> ec2: http
+    ec2 --> dynamo: http-boto3
+    dynamo --> eventbridge
+    eventbridge --> dynamo_stream
+    dynamo_stream --> eventbridge_pipes
+    eventbridge_pipes --> sqs_aws_libros
+    sqs_aws_libros --> lambda: trigger
+    lambda --> s3: http-boto3
+
+}
+
+@enduml
